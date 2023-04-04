@@ -140,6 +140,10 @@ function withPostGraphileContextFromReqResGenerator(
       typeof pgSettingsGenerator === 'function'
         ? await pgSettingsGenerator(req)
         : pgSettingsGenerator;
+    const pgSettingsWithDefaultRole =
+      (options.pgDefaultRole && !(pgSettings && 'role' in pgSettings))
+        ? { ...pgSettings, role: options.pgDefaultRole }
+        : pgSettings;
     const allowExplain =
       typeof allowExplainGenerator === 'function'
         ? await allowExplainGenerator(req)
@@ -148,7 +152,7 @@ function withPostGraphileContextFromReqResGenerator(
       {
         ...options,
         jwtToken,
-        pgSettings,
+        pgSettingsWithDefaultRole,
         explain: allowExplain && req.headers['x-postgraphile-explain'] === 'on',
         ...moreOptions,
       },
@@ -222,11 +226,6 @@ export default function createPostGraphileHttpRequestHandler(
 
   const origGraphiqlHtml = pluginHook('postgraphile:graphiql:html', baseGraphiqlHtml, { options });
 
-  if (pgDefaultRole && typeof pgSettings === 'function') {
-    throw new Error(
-      'pgDefaultRole cannot be combined with pgSettings(req) - please remove pgDefaultRole and instead always return a `role` key from pgSettings(req).',
-    );
-  }
   if (
     pgDefaultRole &&
     pgSettings &&
